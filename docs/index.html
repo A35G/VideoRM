@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VideoRM – Demo</title>
+    <link rel="stylesheet" href="./src/css/videorm-style.css">
+    <style>
+        :root {
+            --bg: #f4f5f7; --fg: #1c1f26; --muted: #5d6472;
+            --panel: #ffffff; --line: #e2e5ea; --accent: #2b59ff; --err: #c62828;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f1115; --fg: #e8eaee; --muted: #9aa2b1;
+                --panel: #181b22; --line: #282d38; --accent: #7b9bff; --err: #ff8a80;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; background: var(--bg); color: var(--fg);
+            font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        main { max-width: 1040px; margin: 0 auto; padding: 32px 20px 64px; }
+        h1 { margin: 0 0 4px; font-size: 2rem; }
+        h2 { margin: 40px 0 8px; font-size: 1.25rem; }
+        p { margin: 0 0 12px; }
+        .lead { color: var(--muted); font-size: 1.05rem; }
+        code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        p code, td code, li code { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+        ul { margin: 0 0 12px; padding-left: 20px; }
+
+        .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+        .controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-bottom: 12px; }
+        .controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+        button.btn {
+            font: inherit; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+            border: 1px solid var(--accent); background: transparent; color: var(--accent);
+        }
+        button.btn:hover { background: var(--accent); color: #fff; }
+        .hint { font-size: 0.875rem; color: var(--muted); margin: 8px 0 0; }
+
+        #gallery { margin: 0 -8px; }
+        .vds-empty { color: var(--muted); }
+
+        #log {
+            margin-top: 12px; max-height: 180px; overflow: auto; padding: 10px 12px;
+            border: 1px solid var(--line); border-radius: 8px; background: var(--bg);
+            font: 0.8rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        #log div { color: var(--err); word-break: break-word; }
+        #log .empty { color: var(--muted); }
+
+        pre {
+            margin: 0 0 12px; padding: 14px 16px; overflow-x: auto; border-radius: 10px;
+            background: #14171d; color: #e6e9ef; font-size: 0.85rem; line-height: 1.55;
+        }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        th { color: var(--muted); font-weight: 600; }
+        footer { margin-top: 48px; color: var(--muted); font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>VideoRM</h1>
+    <p class="lead">Una mini libreria JavaScript, senza dipendenze, per gestire una galleria di video con anteprima al passaggio del mouse e player in finestra modale.</p>
+
+    <h2>Galleria</h2>
+    <p>Passa il mouse su una card <strong>free</strong> per vedere l'anteprima muta (un breve estratto per i video corti, una sequenza di spezzoni per quelli lunghi). Clicca, tocca o premi <code>Invio</code> per aprire il player. Le card <strong>premium</strong> e <strong>private</strong> sono visibili ma non riproducibili.</p>
+
+    <div class="panel">
+        <div class="controls">
+            <label><input type="checkbox" id="optPremium" checked> <code>showPremium</code></label>
+            <label><input type="checkbox" id="optPrivate" checked> <code>showPrivate</code></label>
+            <button class="btn" id="btnInvalid" type="button">Aggiungi video non validi</button>
+        </div>
+
+        <div id="gallery"></div>
+
+        <p class="hint">Le opzioni si impostano alla creazione, quindi le due caselle ricreano l'istanza con <code>destroy()</code>. Il pulsante usa invece <code>render(items)</code>: aggiunge un video con URL inesistente e uno senza sorgente. Le card non valide vengono scartate e l'errore compare qui sotto (e nella console del browser).</p>
+        <div id="log" aria-live="polite"></div>
+    </div>
+
+    <h2>Come si usa</h2>
+    <p>Servono un contenitore <code>&lt;div&gt;</code> e un <code>&lt;dialog&gt;</code> con player e pulsante di chiusura.</p>
+<pre><code>&lt;link rel="stylesheet" href="./src/css/videorm-style.css"&gt;
+
+&lt;div id="gallery"&gt;&lt;/div&gt;
+
+&lt;dialog id="videoModal"&gt;
+  &lt;div class="modal-content"&gt;
+    &lt;button class="close" id="closeVideo" aria-label="Chiudi"&gt;×&lt;/button&gt;
+    &lt;video id="videoPlayer" controls playsinline&gt;&lt;/video&gt;
+  &lt;/div&gt;
+&lt;/dialog&gt;
+
+&lt;script src="./src/js/videorm-core.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const gallery = VideoRM({
+    contentId: "gallery",
+    dataVideo: [
+      { video: "video.mp4", title: "Il mio video", typev: "free", cover: "cover.jpg" }
+    ]
+  });
+
+  gallery.render(nuovaLista);  // ridisegna la galleria
+  gallery.destroy();           // rimuove card e listener
+&lt;/script&gt;</code></pre>
+
+    <h2>Elementi di <code>dataVideo</code></h2>
+    <div class="table-wrap">
+        <table>
+            <tr><th>Campo</th><th>Descrizione</th></tr>
+            <tr><td><code>video</code></td><td>URL del file video. Se manca o non si carica, la card viene scartata.</td></tr>
+            <tr><td><code>title</code></td><td>Titolo mostrato sotto l'anteprima (inserito come testo, non come HTML).</td></tr>
+            <tr><td><code>typev</code></td><td><code>free</code> (predefinito), <code>premium</code> o <code>private</code>.</td></tr>
+            <tr><td><code>cover</code></td><td>Immagine di copertina. Se omessa si usa <code>defaultCover</code>.</td></tr>
+        </table>
+    </div>
+
+    <h2>Opzioni</h2>
+    <div class="table-wrap">
+        <table>
+            <tr><th>Opzione</th><th>Predefinito</th><th>Descrizione</th></tr>
+            <tr><td><code>contentId</code></td><td><code>"video-content"</code></td><td>ID del <code>&lt;div&gt;</code> che ospita le card.</td></tr>
+            <tr><td><code>dataVideo</code></td><td><code>[]</code></td><td>Elenco dei video.</td></tr>
+            <tr><td><code>showPremium</code> / <code>showPrivate</code></td><td><code>true</code></td><td>Mostra o nasconde le card di quel tipo.</td></tr>
+            <tr><td><code>defaultVideoType</code></td><td><code>"free"</code></td><td>Tipo usato quando <code>typev</code> non è indicato.</td></tr>
+            <tr><td><code>defaultCover</code></td><td><code>"./src/img/poster/default.png"</code></td><td>Copertina di riserva.</td></tr>
+            <tr><td><code>modalId</code>, <code>playerId</code>, <code>closeId</code></td><td><code>videoModal</code>, <code>videoPlayer</code>, <code>closeVideo</code></td><td>ID degli elementi del modale.</td></tr>
+        </table>
+    </div>
+
+    <footer>I video di esempio provengono dal bucket pubblico di campioni di Google (Big Buck Bunny, Sintel e altri).</footer>
+</main>
+
+<dialog id="videoModal">
+    <div class="modal-content">
+        <button class="close" id="closeVideo" aria-label="Chiudi">×</button>
+        <video id="videoPlayer" controls playsinline>Il tuo browser non supporta il tag video.</video>
+    </div>
+</dialog>
+
+<script src="./src/js/videorm-core.js"></script>
+<script>
+    const $ = (id) => document.getElementById(id);
+    const BASE = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/';
+
+    // Copertine generate al volo (SVG inline), così la demo non dipende da immagini esterne
+    const cover = (text, c1, c2) => 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 180">' +
+        '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/>' +
+        '</linearGradient></defs><rect width="280" height="180" fill="url(#g)"/>' +
+        '<text x="140" y="98" text-anchor="middle" font-family="sans-serif" font-size="22" ' +
+        'fill="#fff" fill-opacity=".85">' + text + '</text></svg>'
+    );
+
+    const videos = [
+        { video: BASE + 'BigBuckBunny.mp4', title: 'Big Buck Bunny (lungo: anteprima a spezzoni)', typev: 'free', cover: cover('Big Buck Bunny', '#2e7d32', '#0b3d0f') },
+        { video: BASE + 'ForBiggerBlazes.mp4', title: 'For Bigger Blazes (breve: anteprima continua)', typev: 'free', cover: cover('Bigger Blazes', '#e65100', '#7f1d00') },
+        { video: BASE + 'Sintel.mp4', title: 'Sintel – un titolo molto lungo che viene troncato con i puntini di sospensione', typev: 'free', cover: cover('Sintel', '#5e35b1', '#1a0f40') },
+        { video: BASE + 'ForBiggerEscapes.mp4', title: 'Senza typev: usa defaultVideoType', cover: cover('Bigger Escapes', '#00838f', '#00363a') },
+        { video: BASE + 'ForBiggerFun.mp4', title: 'Video premium', typev: 'premium', cover: cover('Premium', '#f9a825', '#6d4c00') },
+        { video: BASE + 'ForBiggerJoyrides.mp4', title: 'Video privato', typev: 'private', cover: cover('Privato', '#455a64', '#10181b') }
+    ];
+
+    const invalid = [
+        { video: 'https://example.invalid/non-esiste.mp4', title: 'URL inesistente', typev: 'free' },
+        { title: 'Senza sorgente', typev: 'free' }
+    ];
+
+    // Duplica gli errori della libreria nel riquadro di log della pagina
+    const logEl = $('log');
+    const clearLog = () => { logEl.innerHTML = '<div class="empty">Nessun errore registrato.</div>'; };
+    const nativeError = console.error.bind(console);
+
+    console.error = (...args) => {
+        nativeError(...args);
+
+        const row = document.createElement('div');
+        row.textContent = args.filter((a) => typeof a === 'string' && a).join(' ');
+
+        logEl.querySelector('.empty')?.remove();
+        logEl.appendChild(row);
+    };
+
+    clearLog();
+
+    let gallery = null;
+    let withInvalid = false;
+
+    const currentList = () => (withInvalid ? [...videos, ...invalid] : videos);
+
+    const mount = () => {
+        gallery?.destroy();
+        clearLog();
+
+        gallery = VideoRM({
+            contentId: 'gallery',
+            showPremium: $('optPremium').checked,
+            showPrivate: $('optPrivate').checked,
+            dataVideo: currentList()
+        });
+    };
+
+    $('optPremium').addEventListener('change', mount);
+    $('optPrivate').addEventListener('change', mount);
+
+    $('btnInvalid').addEventListener('click', (e) => {
+        withInvalid = !withInvalid;
+        e.currentTarget.textContent = withInvalid ? 'Rimuovi video non validi' : 'Aggiungi video non validi';
+
+        clearLog();
+        gallery.render(currentList());
+    });
+
+    mount();
+</script>
+</body>
+</html>

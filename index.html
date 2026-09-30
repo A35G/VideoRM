@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Video RM - Demo</title>
+        <link rel="stylesheet" type="text/css" href="./src/css/videorm-style.css">
+    </head>
+    <body>
+
+        <div id="boxlist"></div>
+
+        <dialog id="videoModal">
+            <div class="modal-content">
+
+                <button class="close" id="closeVideo" aria-label="Chiudi">×</button>
+
+                <video id="videoPlayer" controls playsinline>
+                    Il tuo browser non supporta il tag video.
+                </video>
+
+            </div>
+        </dialog>
+
+        <script type="text/javascript">
+            const lsv = [{
+                video: "./private/videos/mp4-720p-10s.webm",
+                title: "It's a Test! Lorem Ipsum Dolor Ohi Mama che dolor",
+                typev: "premium"
+            },{
+                video: "./private/videos/video.mp4",
+                title: "",
+                typev: "free"
+            },{
+                video: "https://www.w3schools.com/html/mov_bbb.mp4",
+                title: "It's a Test!",
+                typev: "private"
+            }/*,{
+                video: "Oceania.mp4",
+                title: "Oceania - Il Film",
+                typev: "free",
+                cover: "Moana.jpg"
+            }*/];
+        </script>
+        <script type="text/javascript" src="./src/js/videorm-core.js"></script>
+        <script>
+            VideoRM({
+                contentId: "boxlist",
+                dataVideo: lsv
+            });
+        </script>
+    </body>
+</html>
