@@ -37,11 +37,12 @@
             font: inherit; padding: 6px 14px; border-radius: 8px; cursor: pointer;
             border: 1px solid var(--accent); background: transparent; color: var(--accent);
         }
-        button.btn:hover { background: var(--accent); color: #fff; }
+        button.btn:hover:not(:disabled) { background: var(--accent); color: #fff; }
+        button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .hint { font-size: 0.875rem; color: var(--muted); margin: 8px 0 0; }
 
-        #gallery { margin: 0 -8px; }
-        .vds-empty { color: var(--muted); }
+        #gallery, #edge, #api { margin: 0 -8px; }
+        .vds-empty { color: var(--muted); padding: 24px; text-align: center; }
 
         #log {
             margin-top: 12px; max-height: 180px; overflow: auto; padding: 10px 12px;
@@ -68,7 +69,7 @@
     <p class="lead">Una mini libreria JavaScript, senza dipendenze, per gestire una galleria di video con anteprima al passaggio del mouse e player in finestra modale.</p>
 
     <h2>Galleria</h2>
-    <p>Passa il mouse su una card <strong>free</strong> per vedere l'anteprima muta (un breve estratto per i video corti, una sequenza di spezzoni per quelli lunghi). Clicca, tocca o premi <code>Invio</code> per aprire il player. Le card <strong>premium</strong> e <strong>private</strong> sono visibili ma non riproducibili.</p>
+    <p>Passa il mouse su una card <strong>free</strong> per vedere l'anteprima muta (un breve estratto per i video corti, una sequenza di spezzoni per quelli lunghi). Clicca, tocca o premi <code>Invio</code> / <code>Spazio</code> per aprire il player; <code>Esc</code> o un click sullo sfondo lo chiudono. Su touch non c'è anteprima: il tap apre direttamente il player. Le card <strong>premium</strong> e <strong>private</strong> sono visibili ma non riproducibili. Un video senza <code>typev</code> viene trattato come <strong>free</strong>.</p>
 
     <div class="panel">
         <div class="controls">
@@ -79,8 +80,29 @@
 
         <div id="gallery"></div>
 
-        <p class="hint">Le opzioni si impostano alla creazione, quindi le due caselle ricreano l'istanza con <code>destroy()</code>. Il pulsante usa invece <code>render(items)</code>: aggiunge un video con URL inesistente e uno senza sorgente. Le card non valide vengono scartate e l'errore compare qui sotto (e nella console del browser).</p>
+        <p class="hint">Le opzioni si impostano alla creazione, quindi le due caselle ricreano l'istanza con <code>destroy()</code>. Il pulsante usa invece <code>render(items)</code>: aggiunge un video con URL inesistente e uno senza sorgente. Le card non valide vengono scartate, di qualunque tipo siano, e l'errore compare qui sotto (e nella console del browser).</p>
         <div id="log" aria-live="polite"></div>
+    </div>
+
+    <h2>Casi limite</h2>
+    <p>Un titolo vuoto, un titolo con HTML e caratteri speciali (mostrato come testo, mai interpretato) e un video senza <code>cover</code>, che usa l'opzione <code>defaultCover</code> (qui impostata su un'immagine generata al volo).</p>
+
+    <div class="panel">
+        <div id="edge"></div>
+        <p class="hint">Con il titolo vuoto l'altezza dello span si mantiene solo se <code>.title-text</code> ha un <code>min-height</code> di una riga nel CSS.</p>
+    </div>
+
+    <h2>API: <code>render()</code> e <code>destroy()</code></h2>
+    <p><code>VideoRM()</code> restituisce <code>{ render, destroy }</code>. Con <code>render([])</code> (o quando tutte le card vengono scartate) compare il messaggio "Nessun video disponibile". Dopo <code>destroy()</code> la galleria è vuota e i listener sono rimossi.</p>
+
+    <div class="panel">
+        <div class="controls">
+            <button class="btn" id="btnA" type="button">render(lista A)</button>
+            <button class="btn" id="btnB" type="button">render(lista B)</button>
+            <button class="btn" id="btnEmpty" type="button">render([])</button>
+            <button class="btn" id="btnDestroy" type="button">destroy()</button>
+        </div>
+        <div id="api"></div>
     </div>
 
     <h2>Come si usa</h2>
@@ -158,6 +180,8 @@
         'fill="#fff" fill-opacity=".85">' + text + '</text></svg>'
     );
 
+    /* ---------- Galleria ---------- */
+
     const videos = [
         { video: BASE + 'BigBuckBunny.mp4', title: 'Big Buck Bunny (lungo: anteprima a spezzoni)', typev: 'free', cover: cover('Big Buck Bunny', '#2e7d32', '#0b3d0f') },
         { video: BASE + 'ForBiggerBlazes.mp4', title: 'For Bigger Blazes (breve: anteprima continua)', typev: 'free', cover: cover('Bigger Blazes', '#e65100', '#7f1d00') },
@@ -218,6 +242,61 @@
     });
 
     mount();
+
+    /* ---------- Casi limite ---------- */
+
+    VideoRM({
+        contentId: 'edge',
+        defaultCover: cover('Cover di riserva', '#37474f', '#11181c'),
+        dataVideo: [
+            { video: BASE + 'ForBiggerMeltdowns.mp4', title: '', typev: 'free', cover: cover('Titolo vuoto', '#ad1457', '#3b0820') },
+            { video: BASE + 'ElephantsDream.mp4', title: '<b>HTML</b> $& <img src=x onerror=alert(1)>', typev: 'free', cover: cover('Titolo con HTML', '#1565c0', '#08224a') },
+            { video: BASE + 'TearsOfSteel.mp4', title: 'Senza cover: usa defaultCover', typev: 'free' }
+        ]
+    });
+
+    /* ---------- API: render() e destroy() ---------- */
+
+    const listA = [
+        { video: BASE + 'ForBiggerMeltdowns.mp4', title: 'Lista A – 1', typev: 'free', cover: cover('A – 1', '#2e7d32', '#0b3d0f') },
+        { video: BASE + 'ElephantsDream.mp4', title: 'Lista A – 2', typev: 'free', cover: cover('A – 2', '#e65100', '#7f1d00') }
+    ];
+
+    const listB = [
+        { video: BASE + 'TearsOfSteel.mp4', title: 'Lista B – 1', typev: 'free', cover: cover('B – 1', '#5e35b1', '#1a0f40') },
+        { video: BASE + 'ForBiggerFun.mp4', title: 'Lista B – 2 (premium)', typev: 'premium', cover: cover('B – 2', '#f9a825', '#6d4c00') },
+        { video: BASE + 'BigBuckBunny.mp4', title: 'Lista B – 3', typev: 'free', cover: cover('B – 3', '#00838f', '#00363a') }
+    ];
+
+    let api = null;
+
+    const setApiEnabled = (on) => {
+        ['btnA', 'btnB', 'btnEmpty'].forEach((id) => { $(id).disabled = !on; });
+    };
+
+    const createApi = () => {
+        api = VideoRM({ contentId: 'api', dataVideo: listA });
+        setApiEnabled(true);
+        $('btnDestroy').textContent = 'destroy()';
+    };
+
+    $('btnA').addEventListener('click', () => api.render(listA));
+    $('btnB').addEventListener('click', () => api.render(listB));
+    $('btnEmpty').addEventListener('click', () => api.render([]));
+
+    // Il pulsante alterna destroy() e nuova creazione dell'istanza
+    $('btnDestroy').addEventListener('click', () => {
+        if (api) {
+            api.destroy();
+            api = null;
+            setApiEnabled(false);
+            $('btnDestroy').textContent = 'Ricrea istanza';
+        } else {
+            createApi();
+        }
+    });
+
+    createApi();
 </script>
 </body>
 </html>
