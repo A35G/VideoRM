@@ -132,7 +132,7 @@ Classi principali di ogni card:
 Due accorgimenti utili:
 
 ```css
-/* puntatore del mouse a forma di mouse solo sulle card riproducibili */
+/* puntatore del mouse a forma di mano solo sulle card riproducibili */
 .vds[data-type="free"] { cursor: pointer; }
 
 /* mantiene l'altezza di una riga anche con titolo vuoto */
