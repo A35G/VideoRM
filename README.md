@@ -6,11 +6,11 @@ Mini libreria JavaScript, senza dipendenze, per creare una galleria di video con
 
 | <img src="./docs/screenshots/draw-gallery.png" /> | <img src="./docs/screenshots/mouse-hover.png" />
 | :---: | :---: |
-| New Default Theme | Minimal Theme |
+| Galleria Video | Anteprima all'hover |
 
 | <img src="./docs/screenshots/view-video.png" /> | <img src="./docs/screenshots/video-modal.png" />
 | :---: | :---: |
-| New Default Theme | Minimal Theme |
+| Visualizzazione Video | Video in Modal nativa |
 
 ## Caratteristiche
 
@@ -132,7 +132,7 @@ Classi principali di ogni card:
 Due accorgimenti utili:
 
 ```css
-/* cursore a mano solo sulle card riproducibili */
+/* puntatore del mouse a forma di mouse solo sulle card riproducibili */
 .vds[data-type="free"] { cursor: pointer; }
 
 /* mantiene l'altezza di una riga anche con titolo vuoto */
